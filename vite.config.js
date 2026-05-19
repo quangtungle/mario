@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 
-export default defineConfig(({ command }) => ({
-  base: command === 'build' ? '/mario/' : '/',
+export default defineConfig(() => ({
+  base: process.env.GITHUB_ACTIONS ? '/mario/' : '/',
   server: {
     host: true,
     port: 5174
