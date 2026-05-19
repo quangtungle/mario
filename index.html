@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#5c94fc" />
+  <title>Robot Mario</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #5c94fc;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior: none;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    #game {
+      width: 100vw;
+      height: 100vh;
+    }
+    #game canvas {
+      display: block;
+    }
+    #rotate-hint {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #1a1a2e;
+      color: #ffd54f;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 22px;
+      font-weight: bold;
+      padding: 24px;
+      z-index: 9999;
+    }
+    @media (orientation: portrait) and (hover: none) {
+      #rotate-hint {
+        display: flex;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+  <div id="rotate-hint">📱↻<br/>Rotate your phone<br/>to landscape</div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
