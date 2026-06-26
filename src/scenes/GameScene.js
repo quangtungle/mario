@@ -36,6 +36,42 @@ export default class GameScene extends Phaser.Scene {
     this.createHUD();
     this.createControls();
     this.showIntro();
+
+    this.scale.on('resize', this.layoutOverlay, this);
+    this.events.once('shutdown', () => this.scale.off('resize', this.layoutOverlay, this));
+    this.layoutOverlay();
+  }
+
+  getVisibleBounds() {
+    const gw = this.scale.gameSize.width;
+    const gh = this.scale.gameSize.height;
+    const dw = this.scale.displaySize.width || gw;
+    const dh = this.scale.displaySize.height || gh;
+    const cb = this.scale.canvasBounds;
+    const pw = this.scale.parentSize.width || dw;
+    const ph = this.scale.parentSize.height || dh;
+    const scale = dw / gw;
+    const offX = cb ? cb.x : (pw - dw) / 2;
+    const offY = cb ? cb.y : (ph - dh) / 2;
+    let left = Math.max(0, -offX / scale);
+    let top = Math.max(0, -offY / scale);
+    let right = Math.min(gw, (pw - offX) / scale);
+    let bottom = Math.min(gh, (ph - offY) / scale);
+    return { left, top, right, bottom, width: right - left, height: bottom - top };
+  }
+
+  layoutOverlay() {
+    const v = this.getVisibleBounds();
+    if (this.scoreText) {
+      this.scoreText.setPosition(v.left + 16, v.top + 12);
+    }
+    if (this.timeText) {
+      this.timeText.setPosition(v.left + v.width / 2, v.top + 12);
+    }
+    if (this.introText) {
+      this.introText.setPosition(v.left + v.width / 2, v.top + 80);
+    }
+    this.layoutControls(v);
   }
 
   drawClouds() {
@@ -208,12 +244,16 @@ export default class GameScene extends Phaser.Scene {
       strokeThickness: 5
     }).setOrigin(0.5).setScrollFactor(0).setDepth(150);
 
+    this.introText = intro;
     this.tweens.add({
       targets: intro,
       alpha: 0,
       delay: 2000,
       duration: 800,
-      onComplete: () => intro.destroy()
+      onComplete: () => {
+        intro.destroy();
+        this.introText = null;
+      }
     });
   }
 
@@ -222,40 +262,56 @@ export default class GameScene extends Phaser.Scene {
     this.keys = this.input.keyboard.addKeys({ A: 'A', D: 'D', W: 'W', SPACE: 'SPACE' });
     this.controls = { left: false, right: false, jump: false };
 
-    const w = this.scale.width;
-    const h = this.scale.height;
-    const btnSize = Math.min(w, h) * 0.13;
-    const margin = btnSize * 0.6;
-
-    const makeBtn = (cx, cy, label, color) => {
-      const c = this.add.circle(cx, cy, btnSize, color, 0.22)
+    const makeBtn = (label, color) => {
+      const c = this.add.circle(0, 0, 40, color, 0.22)
         .setStrokeStyle(3, 0xffffff, 0.6)
-        .setScrollFactor(0).setDepth(100).setInteractive();
-      this.add.text(cx, cy, label, {
-        fontSize: btnSize * 0.7 + 'px',
+        .setScrollFactor(0).setDepth(100);
+      c.setInteractive(new Phaser.Geom.Circle(0, 0, 40), Phaser.Geom.Circle.Contains);
+      const t = this.add.text(0, 0, label, {
+        fontSize: '20px',
         color: '#ffffff'
       }).setOrigin(0.5).setScrollFactor(0).setDepth(101);
-      return c;
+      return { circle: c, text: t };
     };
 
-    const lx = margin + btnSize;
-    const ly = h - margin - btnSize;
-    const rx = lx + btnSize * 2.4;
-    const jx = w - margin - btnSize;
+    const lbtn = makeBtn('◀', 0xffffff);
+    const rbtn = makeBtn('▶', 0xffffff);
+    const jbtn = makeBtn('▲', 0xff6b6b);
 
-    const lbtn = makeBtn(lx, ly, '◀', 0xffffff);
-    const rbtn = makeBtn(rx, ly, '▶', 0xffffff);
-    const jbtn = makeBtn(jx, ly, '▲', 0xff6b6b);
+    this.btnLeft = lbtn;
+    this.btnRight = rbtn;
+    this.btnJump = jbtn;
 
     const wireBtn = (btn, key) => {
-      btn.on('pointerdown', () => { this.controls[key] = true; });
-      btn.on('pointerup', () => { this.controls[key] = false; });
-      btn.on('pointerout', () => { this.controls[key] = false; });
-      btn.on('pointerupoutside', () => { this.controls[key] = false; });
+      btn.circle.on('pointerdown', () => { this.controls[key] = true; });
+      btn.circle.on('pointerup', () => { this.controls[key] = false; });
+      btn.circle.on('pointerout', () => { this.controls[key] = false; });
+      btn.circle.on('pointerupoutside', () => { this.controls[key] = false; });
     };
     wireBtn(lbtn, 'left');
     wireBtn(rbtn, 'right');
     wireBtn(jbtn, 'jump');
+  }
+
+  layoutControls(v) {
+    if (!this.btnLeft) return;
+    const btnSize = Math.min(v.width, v.height) * 0.085;
+    const margin = btnSize * 0.7;
+    const ly = v.bottom - margin - btnSize;
+    const lx = v.left + margin + btnSize;
+    const rx = lx + btnSize * 2.4;
+    const jx = v.right - margin - btnSize;
+
+    const place = (btn, cx, cy) => {
+      btn.circle.setPosition(cx, cy);
+      btn.circle.setRadius(btnSize);
+      btn.circle.input.hitArea.radius = btnSize;
+      btn.text.setPosition(cx, cy);
+      btn.text.setFontSize(btnSize * 0.7);
+    };
+    place(this.btnLeft, lx, ly);
+    place(this.btnRight, rx, ly);
+    place(this.btnJump, jx, ly);
   }
 
   hitBrick(player, brick) {
